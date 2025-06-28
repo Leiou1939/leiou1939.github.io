@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YERG匿名留言板</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .message-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+        
+        .message-form:hover {
+            box-shadow: 0 15px 40px rgba(52, 152, 219, 0.15);
+            transform: translateY(-5px);
+        }
+        
+        .form-title {
+            color: #3498db;
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e7ee;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e7ee;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: #f9fbfd;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: white;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: block;
+            margin-left: auto;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .messages-container {
+            margin-top: 30px;
+        }
+        
+        .messages-title {
+            color: #2c3e50;
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e0e7ee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .message-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.6s ease;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid rgba(52, 152, 219, 0.1);
+        }
+        
+        .message-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.15);
+        }
+        
+        .message-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(to bottom, #3498db, #2ecc71);
+            border-radius: 15px 0 0 15px;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .message-author {
+            font-weight: 700;
+            color: #3498db;
+            font-size: 1.2rem;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .message-time {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            background: rgba(149, 165, 166, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .message-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.7;
+            color: #2c3e50;
+            font-size: 1.05rem;
+            padding: 15px;
+            background: #f9fbfd;
+            border-radius: 10px;
+            border-left: 3px solid #3498db;
+            margin-bottom: 15px;
+        }
+        
+        /* 点赞按钮样式优化 */
+        .like-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .like-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            color: #7f8c8d;
+            font-weight: 500;
+            /* 移除移动端点击时的蓝色框 */
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .like-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+        
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+        
+        .like-btn i {
+            transition: all 0.3s;
+        }
+        
+        .like-btn.liked i {
+            transform: scale(1.2);
+        }
+        
+        .like-count {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 2px dashed #e0e7ee;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #7f8c8d;
+            padding: 20px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #3498db;
+            font-size: 1.2rem;
+        }
+        
+        .loading i {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        .error {
+            background: #ffecec;
+            color: #e74c3c;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #fadbd8;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 15px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 1px solid rgba(52, 152, 219, 0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+            padding: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .sort-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e0e7ee;
+        }
+        
+        .sort-container label {
+            margin-bottom: 0;
+            color: #7f8c8d;
+        }
+        
+        #sort-select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e7ee;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        /* 分页控件样式调整 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px auto 0;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 90%;
+        }
+        
+        /* 电脑屏幕上优化分页布局 */
+        @media (min-width: 769px) {
+            .pagination {
+                max-width: 80%;
+                justify-content: center;
+            }
+            
+            .page-info {
+                flex-grow: 0;
+                min-width: 180px;
+            }
+        }
+
+        /* 确保分页按钮不会太靠右 */
+        #pagination-controls {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        
+        .pagination button {
+            min-width: 40px;
+            height: 40px;
+            padding: 0 10px;
+            background: white;
+            color: #3498db;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #3498db;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            color: #7f8c8d;
+            font-weight: 500;
+            margin: 0 80px;
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 点赞动画 */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        .like-btn.animating i {
+            animation: pulse 0.5s ease;
+        }
+        
+        /* 响应式设计 - 优化移动端显示 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .message-form {
+                padding: 20px;
+            }
+            
+            .form-title {
+                font-size: 1.4rem;
+            }
+            
+            .message-card {
+                padding: 20px;
+            }
+            
+            .message-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                margin-bottom: 12px; /* 减小底部间距 */
+            }
+            
+            .stat-value {
+                font-size: 1.8rem;
+            }
+            
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .sort-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            #sort-select {
+                width: 70%;
+            }
+            
+            .pagination {
+                gap: 5px;
+            }
+            
+            .pagination button {
+                min-width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            /* 移动端留言显示框优化 */
+            .message-content {
+                padding: 12px 15px; /* 减小上下内边距 */
+                font-size: 1.1rem; /* 适当减小字体大小 */
+                min-height: auto; /* 移除固定最小高度 */
+                line-height: 1.6; /* 调整行高 */
+                margin-bottom: 10px; /* 减小底部间距 */
+            }
+            
+            /* 移动端点赞按钮优化 */
+            .like-btn {
+                padding: 8px; /* 减少内边距 */
+                width: 36px; /* 固定宽度 */
+                height: 36px; /* 固定高度 */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .like-btn i {
+                font-size: 1.3rem; /* 更大的图标 */
+            }
+            
+            .like-count {
+                font-size: 1.1rem; /* 更大的计数 */
+            }
+            
+            /* 移动端消息卡片布局优化 */
+            .message-card {
+                padding: 18px; /* 减小内边距 */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .message-form {
+                padding: 18px;
+            }
+            
+            .stat-value {
+                font-size: 1.6rem;
+            }
+            
+            .message-content {
+                font-size: 1rem; /* 进一步减小字体大小 */
+                padding: 10px 14px; /* 减小内边距 */
+                line-height: 1.5; /* 调整行高 */
+            }
+            
+            .message-author, .message-time {
+                font-size: 0.9rem;
+            }
+            
+            .pagination {
+                gap: 3px;
+            }
+            
+            .pagination button {
+                min-width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+            
+            .page-info {
+                margin: 0 15px;
+            }
+            
+            /* 进一步优化短留言布局 */
+            .message-card {
+                padding: 16px;
+            }
+            
+            .like-container {
+                margin-top: 8px;
+            }
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#3498db, #2ecc71);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(#2980b9, #27ae60);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-comments"></i> YERG匿名留言板</h1>
+            <p class="subtitle">自由天地，畅所欲言！</p>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="total-messages">0</div>
+                <div class="stat-label">总留言数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="today-messages">0</div>
+                <div class="stat-label">今日留言</div>
+            </div>
+        </div>
+        
+        <main>
+            <section class="message-form">
+                <h2 class="form-title"><i class="fas fa-pencil-alt"></i> 发布留言</h2>
+                <div class="form-group">
+                    <label for="nickname"><i class="fas fa-user"></i> 昵称（可选）</label>
+                    <input type="text" id="nickname" placeholder="输入昵称（默认：匿名用户）">
+                </div>
+                <div class="form-group">
+                    <label for="message"><i class="fas fa-comment"></i> 留言内容 *</label>
+                    <textarea id="message" placeholder="写下你想说的话..." required></textarea>
+                </div>
+                <button id="submit-btn"><i class="fas fa-paper-plane"></i> 发布留言</button>
+            </section>
+            
+            <section class="messages-container">
+                <div class="filter-bar">
+                    <h2 class="messages-title"><i class="fas fa-list"></i> 留言列表</h2>
+                    <div class="sort-container">
+                        <label for="sort-select"><i class="fas fa-sort"></i> 排序：</label>
+                        <select id="sort-select">
+                            <option value="newest">最新留言</option>
+                            <option value="oldest">最早留言</option>
+                            <option value="most-liked">最多点赞</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="messages-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <p>正在加载留言数据...</p>
+                    </div>
+                </div>
+                
+                <!-- 分页控件 -->
+                <div class="pagination" id="pagination-controls">
+                    <button id="first-page" title="第一页"><i class="fas fa-angle-double-left"></i></button>
+                    <button id="prev-page" title="上一页"><i class="fas fa-angle-left"></i></button>
+                    
+                    <div class="page-info">
+                        第 <span id="current-page">1</span> 页 / 共 <span id="total-pages-display">0</span> 页
+                    </div>
+                    
+                    <button id="next-page" title="下一页"><i class="fas fa-angle-right"></i></button>
+                    <button id="last-page" title="最后一页"><i class="fas fa-angle-double-right"></i></button>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2025 YERG匿名留言板 Ver1.1.2</p>
+        </footer>
+    </div>
+
+    <script>
+        // 初始化Supabase客户端
+        const supabaseUrl = 'https://jsfhuzfwelpynhlyptzj.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzZmh1emZ3ZWxweW5obHlwdHpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NDMxMjEsImV4cCI6MjA2NTMxOTEyMX0.xFZoeHRxe1RKbdi2h0jqPO0hTXnMHl85ihGLU6E6PAs';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // 获取DOM元素
+        const nicknameInput = document.getElementById('nickname');
+        const messageInput = document.getElementById('message');
+        const submitBtn = document.getElementById('submit-btn');
+        const messagesList = document.getElementById('messages-list');
+        const sortSelect = document.getElementById('sort-select');
+        const totalMessagesEl = document.getElementById('total-messages');
+        const todayMessagesEl = document.getElementById('today-messages');
+        const totalPagesDisplay = document.getElementById('total-pages-display');
+        const currentPageEl = document.getElementById('current-page');
+        
+        // 分页元素
+        const firstPageBtn = document.getElementById('first-page');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const lastPageBtn = document.getElementById('last-page');
+        
+        // 分页变量
+        let currentPage = 1;
+        let totalPages = 1;
+        const messagesPerPage = 15; // 每页15条留言
+        
+        // 存储用户点赞状态
+        let likedMessages = JSON.parse(localStorage.getItem('likedMessages') || '{}');
+        // 正在处理的点赞请求
+        const pendingLikes = new Set();
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 加载统计数据
+            await loadStats();
+            
+            // 加载留言
+            loadMessages();
+            
+            // 添加事件监听器
+            submitBtn.addEventListener('click', submitMessage);
+            sortSelect.addEventListener('change', loadMessages);
+            
+            // 绑定分页按钮事件
+            bindPaginationEvents();
+        });
+
+        // 绑定分页按钮事件
+        function bindPaginationEvents() {
+            firstPageBtn.addEventListener('click', () => goToPage(1));
+            prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
+            nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+            lastPageBtn.addEventListener('click', () => goToPage(totalPages));
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            loadMessages();
+        }
+        
+        // 更新分页控件状态
+        function updatePaginationControls() {
+            currentPageEl.textContent = currentPage;
+            totalPagesDisplay.textContent = totalPages;
+            
+            // 更新按钮状态
+            firstPageBtn.disabled = currentPage === 1;
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages;
+            lastPageBtn.disabled = currentPage === totalPages;
+        }
+        
+        // 加载留言
+        async function loadMessages() {
+            messagesList.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>正在加载第 ${currentPage} 页留言...</p>
+                </div>
+            `;
+            
+            try {
+                // 计算起始位置
+                const startIndex = (currentPage - 1) * messagesPerPage;
+                
+                // 根据选择排序方式
+                let query = supabase
+                    .from('messages')
+                    .select('*');
+                
+                if (sortSelect.value === 'newest') {
+                    query = query.order('created_at', { ascending: false });
+                } else if (sortSelect.value === 'oldest') {
+                    query = query.order('created_at', { ascending: true });
+                } else if (sortSelect.value === 'most-liked') {
+                    query = query.order('likes', { ascending: false });
+                }
+                
+                // 获取留言数据（带分页）
+                let { data: messages, error, count } = await query
+                    .range(startIndex, startIndex + messagesPerPage - 1);
+                
+                if (error) throw error;
+                
+                displayMessages(messages);
+                updatePaginationControls();
+            } catch (error) {
+                messagesList.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>加载留言失败: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示留言
+        function displayMessages(messages) {
+            messagesList.innerHTML = '';
+            
+            if (!messages || messages.length === 0) {
+                messagesList.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p>暂无留言，成为第一个留言者吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 显示当前页范围
+            const startIndex = (currentPage - 1) * messagesPerPage + 1;
+            const endIndex = startIndex + messages.length - 1;
+            
+            const pageInfo = document.createElement('div');
+            pageInfo.className = 'page-info';
+            pageInfo.style.marginBottom = '15px';
+            pageInfo.style.color = '#3498db';
+            pageInfo.style.fontWeight = '600';
+            messagesList.appendChild(pageInfo);
+            
+            // 显示留言
+            messages.forEach((msg) => {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message-card';
+                
+                // 检查用户是否已点赞
+                const isLiked = likedMessages[msg.id] || false;
+                
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-author">
+                            <i class="fas fa-user"></i> ${msg.nickname || '匿名用户'}
+                        </div>
+                        <div class="message-time">
+                            <i class="fas fa-clock"></i> ${formatDate(msg.created_at)}
+                        </div>
+                    </div>
+                    <div class="message-content">${msg.content}</div>
+                    <div class="like-container">
+                        <button class="like-btn ${isLiked ? 'liked' : ''}" data-id="${msg.id}">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        <span class="like-count">${msg.likes || 0}</span>
+                    </div>
+                `;
+                messagesList.appendChild(messageElement);
+            });
+            
+            // 为点赞按钮添加事件监听器
+            document.querySelectorAll('.like-btn').forEach(button => {
+                button.addEventListener('click', likeMessage);
+            });
+        }
+        
+        // 点赞功能 - 优化版本
+        async function likeMessage(event) {
+            const button = event.currentTarget;
+            const messageId = button.dataset.id;
+            
+            // 检查是否已点赞
+            if (likedMessages[messageId]) {
+                showNotification('您已经点过赞了！', 'info');
+                return;
+            }
+            
+            // 检查是否正在处理中
+            if (pendingLikes.has(messageId)) {
+                showNotification('正在处理点赞，请稍候...', 'info');
+                return;
+            }
+            
+            // 添加到处理中集合
+            pendingLikes.add(messageId);
+            
+            try {
+                // 立即更新UI
+                button.classList.add('liked');
+                const likeCountEl = button.nextElementSibling;
+                const currentLikes = parseInt(likeCountEl.textContent);
+                const newLikes = currentLikes + 1;
+                likeCountEl.textContent = newLikes;
+                
+                // 添加动画效果
+                button.classList.add('animating');
+                
+                // 获取当前点赞数
+                const { data: message, error: getError } = await supabase
+                    .from('messages')
+                    .select('likes')
+                    .eq('id', messageId)
+                    .single();
+                
+                if (getError) throw getError;
+                
+                // 更新点赞数
+                const dbLikes = (message.likes || 0) + 1;
+                
+                const { error: updateError } = await supabase
+                    .from('messages')
+                    .update({ likes: dbLikes })
+                    .eq('id', messageId);
+                
+                if (updateError) throw updateError;
+                
+                // 保存点赞状态
+                likedMessages[messageId] = true;
+                localStorage.setItem('likedMessages', JSON.stringify(likedMessages));
+                
+                // 显示成功消息
+                showNotification('点赞成功！', 'success');
+                
+                // 移除动画
+                setTimeout(() => {
+                    button.classList.remove('animating');
+                }, 500);
+            } catch (error) {
+                // 回滚UI
+                button.classList.remove('liked');
+                const likeCountEl = button.nextElementSibling;
+                const currentLikes = parseInt(likeCountEl.textContent);
+                likeCountEl.textContent = Math.max(0, currentLikes - 1);
+                
+                showNotification(`点赞失败: ${error.message}`, 'error');
+            } finally {
+                // 从处理中集合移除
+                pendingLikes.delete(messageId);
+            }
+        }
+        
+        // 提交留言
+        async function submitMessage() {
+            const nickname = nicknameInput.value.trim();
+            const content = messageInput.value.trim();
+            
+            if (!content) {
+                showNotification('留言内容不能为空！', 'error');
+                messageInput.focus();
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('messages')
+                    .insert([
+                        { 
+                            nickname: nickname || null, 
+                            content: content,
+                            likes: 0 // 初始点赞数为0
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                // 清空表单
+                messageInput.value = '';
+                
+                // 重新加载统计数据
+                await loadStats();
+                
+                // 跳转到第一页查看新留言
+                currentPage = 1;
+                loadMessages();
+                
+                // 显示成功消息
+                showNotification('留言发布成功！', 'success');
+            } catch (error) {
+                showNotification(`发布失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 加载统计数据 - 修复今日留言统计问题
+        async function loadStats() {
+            try {
+                // 总留言数
+                const { count: totalCount } = await supabase
+                    .from('messages')
+                    .select('*', { count: 'exact', head: true });
+                
+                totalMessagesEl.textContent = totalCount || 0;
+                
+                // 今日留言数 - 修复逻辑
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                
+                const { count: todayCount } = await supabase
+                    .from('messages')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', todayStart.toISOString())
+                    .lt('created_at', todayEnd.toISOString());
+                
+                todayMessagesEl.textContent = todayCount || 0;
+                
+                // 计算总页数
+                totalPages = Math.ceil(totalCount / messagesPerPage);
+                totalPagesDisplay.textContent = totalPages;
+                
+                // 更新分页控件状态
+                updatePaginationControls();
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace(/\//g, '-');
+        }
+        
+        // 显示通知
+        function showNotification(message, type) {
+            // 移除现有通知
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                   type === 'error' ? 'exclamation-circle' : 
+                                   'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 显示通知
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // 3秒后移除通知
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        // 添加通知样式
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                opacity: 0;
+                transform: translateY(-20px);
+                transition: all 0.3s ease;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            }
+            
+            .notification.success {
+                background: linear-gradient(135deg, #2ecc71, #27ae60);
+                border-left: 5px solid #1d8348;
+            }
+            
+            .notification.error {
+                background: linear-gradient(135deg, #e74c3c, #c0392b);
+                border-left: 5px solid #922b21;
+            }
+            
+            .notification.info {
+                background: linear-gradient(135deg, #3498db, #2980b9);
+                border-left: 5px solid #1a5276;
+            }
+            
+            .notification i {
+                font-size: 1.5rem;
+            }
+            
+            @media (max-width: 768px) {
+                .notification {
+                    top: 10px;
+                    right: 10px;
+                    left: 10px;
+                    max-width: calc(100% - 20px);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
