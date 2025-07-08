@@ -247,7 +247,8 @@ button:active {
     gap: 8px;
 }
 
-.like-btn {
+.like-btn,
+.comment-btn {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -292,21 +293,21 @@ button:active {
     gap: 8px;
 }
 
-.comment-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.3s;
-    color: #7f8c8d;
-    font-weight: 500;
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
-}
+/*.comment-btn {*/
+/*    background: transparent;*/
+/*    border: none;*/
+/*    cursor: pointer;*/
+/*    padding: 8px 12px;*/
+/*    border-radius: 20px;*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    gap: 5px;*/
+/*    transition: all 0.3s;*/
+/*    color: #7f8c8d;*/
+/*    font-weight: 500;*/
+/*    outline: none;*/
+/*    -webkit-tap-highlight-color: transparent;*/
+/*}*/
 
 .comment-btn i {
     transition: all 0.3s;
@@ -450,7 +451,7 @@ button:active {
 
 footer {
     text-align: center;
-    margin-top: 50px;
+    /*margin-top: 50px;*/
     color: #7f8c8d;
     padding: 20px;
     font-size: 0.9rem;
