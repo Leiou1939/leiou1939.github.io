@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YERG匿名留言板</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        /* 临时留言样式 */
+        .temp-message {
+            opacity: 0.8;
+            background: #f0f8ff;
+            border-left: 2px solid #3498db;
+        }
+        
+        .message-status {
+            color: #3498db;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .message-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+        
+        .message-form:hover {
+            box-shadow: 0 15px 40px rgba(52, 152, 219, 0.15);
+            transform: translateY(-5px);
+        }
+        
+        .form-title {
+            color: #3498db;
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e7ee;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e7ee;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: #f9fbfd;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background: white;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: block;
+            margin-left: auto;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .messages-container {
+            margin-top: 30px;
+        }
+        
+        .messages-title {
+            color: #2c3e50;
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e0e7ee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .message-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.6s ease;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid rgba(52, 152, 219, 0.1);
+        }
+        
+        .message-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.15);
+        }
+        
+        .message-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(to bottom, #3498db, #2ecc71);
+            border-radius: 15px 0 0 15px;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .message-author {
+            font-weight: 700;
+            color: #3498db;
+            font-size: 1.2rem;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .message-time {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            background: rgba(149, 165, 166, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .message-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.7;
+            color: #2c3e50;
+            font-size: 1.05rem;
+            padding: 15px;
+            background: #f9fbfd;
+            border-radius: 10px;
+            border-left: 3px solid #3498db;
+            margin-bottom: 15px;
+        }
+        
+        /* 操作按钮容器 */
+        .action-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        /* 点赞按钮样式 */
+        .like-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .like-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            color: #7f8c8d;
+            font-weight: 500;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .like-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+        
+        .like-btn.liked {
+            color: #e74c3c;
+        }
+        
+        .like-btn i {
+            transition: all 0.3s;
+        }
+        
+        .like-btn.liked i {
+            transform: scale(1.2);
+        }
+        
+        .like-count {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        /* 评论按钮样式 */
+        .comment-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .comment-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            color: #7f8c8d;
+            font-weight: 500;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .comment-btn i {
+            transition: all 0.3s;
+            margin-left: 1px;
+        }
+        
+        .comment-btn:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+        
+        .comment-btn.active {
+            color: #3498db;
+        }
+        
+        .comment-btn.active i {
+            transform: scale(1.2);
+            transition: all 0.3s;
+        }
+
+        .comment-count {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        /* 评论区域样式 */
+        .comments-section {
+            margin-top: 15px;
+            padding-left: 30px;
+            border-left: 3px solid #e0e7ee;
+            display: none;
+        }
+        
+        .comments-section.expanded {
+            display: block;
+        }
+        
+        /* 添加临时评论的样式 */
+        .temp-comment {
+            opacity: 0.8;
+            background: #f0f8ff;
+            border-left: 2px solid #3498db;
+        }
+
+        .comment-status {
+            color: #3498db;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        /* 评论表单样式 */
+        .comment-form {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .comment-form input,
+        .comment-form textarea {
+            padding: 12px;
+            border: 1px solid #e0e7ee;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .comment-form textarea {
+            min-height: 80px;
+        }
+        
+        .comment-form .submit-comment {
+            background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            align-self: flex-end;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .comment-form .submit-comment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        /* 评论列表样式 */
+        .comments-list {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .comment-item {
+            background: #f9fbfd;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            border-left: 2px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .comment-author {
+            font-weight: 600;
+            color: #3498db;
+        }
+        
+        .comment-time {
+            color: #7f8c8d;
+        }
+        
+        .comment-content {
+            color: #2c3e50;
+            line-height: 1.5;
+            padding: 5px 0;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 2px dashed #e0e7ee;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #7f8c8d;
+            padding: 20px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #3498db;
+            font-size: 1.2rem;
+        }
+        
+        .loading i {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        .error {
+            background: #ffecec;
+            color: #e74c3c;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #fadbd8;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 15px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 1px solid rgba(52, 152, 219, 0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+            padding: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .sort-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e0e7ee;
+        }
+        
+        .sort-container label {
+            margin-bottom: 0;
+            color: #7f8c8d;
+        }
+        
+        #sort-select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e7ee;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px auto 0;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 90%;
+        }
+        
+        @media (min-width: 769px) {
+            .pagination {
+                max-width: 80%;
+                justify-content: center;
+            }
+            
+            .page-info {
+                flex-grow: 0;
+                min-width: 180px;
+            }
+        }
+
+        #pagination-controls {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        
+        .pagination button {
+            min-width: 40px;
+            height: 40px;
+            padding: 0 10px;
+            background: white;
+            color: #3498db;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #3498db;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            color: #7f8c8d;
+            font-weight: 500;
+            margin: 0 80px;
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        .like-btn.animating i {
+            animation: pulse 0.5s ease;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .action-container {
+                align-items: center;
+                margin-top: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .message-form {
+                padding: 20px;
+            }
+            
+            .form-title {
+                font-size: 1.4rem;
+            }
+            
+            .message-card {
+                padding: 20px;
+            }
+            
+            .message-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+            
+            .stat-value {
+                font-size: 1.8rem;
+            }
+            
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .sort-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            #sort-select {
+                width: 70%;
+            }
+            
+            .pagination {
+                gap: 5px;
+            }
+            
+            .pagination button {
+                min-width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            .message-content {
+                padding: 12px 15px;
+                font-size: 1rem;
+                min-height: auto;
+                line-height: 1.6;
+                margin-bottom: 10px;
+            }
+            
+            .like-btn, .comment-btn {
+                padding: 8px;
+                width: 38px;
+                height: 38px;
+            }
+            
+            .like-btn i, .comment-btn i {
+                font-size: 1.3rem;
+            }
+            
+            .like-count, .comment-count {
+                font-size: 1.1rem;
+                position: relative;
+                top: 3px;
+            }
+            
+            .message-card {
+                padding: 18px;
+            }
+            
+            .comments-section {
+                padding-left: 20px;
+            }
+
+            .message-author, .message-time {
+                font-size: 0.88rem;
+            }
+            
+            .comment-author, .comment-time {
+                font-size: 0.85rem;
+            }
+            
+            .like-count, .comment-count {
+                font-size: 1.05rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .message-form {
+                padding: 18px;
+            }
+            
+            .stat-value {
+                font-size: 1.6rem;
+            }
+            
+            .message-content {
+                font-size: 1rem;
+                padding: 10px 14px;
+                line-height: 1.5;
+            }
+            
+            .message-author, .message-time {
+                font-size: 0.9rem;
+            }
+            
+            .pagination {
+                gap: 3px;
+            }
+            
+            .pagination button {
+                min-width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+            
+            .page-info {
+                margin: 0 15px;
+            }
+            
+            .message-card {
+                padding: 16px;
+            }
+            
+            .action-container {
+                gap: 10px;
+            }
+
+            .message-author, .message-time {
+                font-size: 0.85rem;
+            }
+            
+            .comment-author, .comment-time {
+                font-size: 0.82rem;
+            }
+            
+            .like-count, .comment-count {
+                font-size: 1rem;
+            }
+            
+            .comment-form input, 
+            .comment-form textarea {
+                font-size: 0.92rem;
+            }
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#3498db, #2ecc71);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(#2980b9, #27ae60);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-comments"></i> YERG匿名留言板</h1>
+            <p class="subtitle">自由天地，畅所欲言！</p>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="total-messages">0</div>
+                <div class="stat-label">总留言数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="today-messages">0</div>
+                <div class="stat-label">今日留言</div>
+            </div>
+        </div>
+        
+        <main>
+            <section class="message-form">
+                <h2 class="form-title"><i class="fas fa-pencil-alt"></i> 发布留言</h2>
+                <div class="form-group">
+                    <label for="nickname"><i class="fas fa-user"></i> 昵称（可选）</label>
+                    <input type="text" id="nickname" placeholder="输入昵称（默认：匿名用户）">
+                </div>
+                <div class="form-group">
+                    <label for="message"><i class="fas fa-comment"></i> 留言内容 *</label>
+                    <textarea id="message" placeholder="写下你想说的话..." required></textarea>
+                </div>
+                <button id="submit-btn"><i class="fas fa-paper-plane"></i> 发布留言</button>
+                <div id="submit-status" style="display: none; margin-top: 15px;">
+                    <div class="message-card temp-message">
+                        <div class="message-header">
+                            <div class="message-author">
+                                <i class="fas fa-user"></i> <span id="temp-nickname"></span>
+                            </div>
+                        </div>
+                        <div class="message-content" id="temp-content"></div>
+                        <div class="message-status">
+                            <i class="fas fa-spinner fa-spin"></i> 正在提交留言...
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="messages-container">
+                <div class="filter-bar">
+                    <h2 class="messages-title"><i class="fas fa-list"></i> 留言列表</h2>
+                    <div class="sort-container">
+                        <label for="sort-select"><i class="fas fa-sort"></i> 排序：</label>
+                        <select id="sort-select">
+                            <option value="newest">最新留言</option>
+                            <option value="oldest">最早留言</option>
+                            <option value="most-liked">最多点赞</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="messages-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <p>正在加载留言数据...</p>
+                    </div>
+                </div>
+                
+                <!-- 分页控件 -->
+                <div class="pagination" id="pagination-controls">
+                    <button id="first-page" title="第一页"><i class="fas fa-angle-double-left"></i></button>
+                    <button id="prev-page" title="上一页"><i class="fas fa-angle-left"></i></button>
+                    
+                    <div class="page-info">
+                        第 <span id="current-page">1</span> 页 / 共 <span id="total-pages-display">0</span> 页
+                    </div>
+                    
+                    <button id="next-page" title="下一页"><i class="fas fa-angle-right"></i></button>
+                    <button id="last-page" title="最后一页"><i class="fas fa-angle-double-right"></i></button>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>© 2025 YERG匿名留言板 Ver1.3.0   自由天地，畅所欲言</p>
+        </footer>
+    </div>
+
+    <script>
+        // Supabase配置 - 使用全局变量而不是重复声明
+        window.supabaseConfig = {
+            url: 'https://jsfhuzfwelpynhlyptzj.supabase.co',
+            key: 'sb_publishable_pVKoncFouiQqP_uqeAvbqQ_WgeA1ZZv'
+        };
+        
+        // 全局变量
+        let currentPage = 1;
+        let totalPages = 1;
+        const messagesPerPage = 15;
+        let likedMessages = JSON.parse(localStorage.getItem('likedMessages') || '{}');
+        const pendingLikes = new Set();
+        
+        // 获取DOM元素
+        const nicknameInput = document.getElementById('nickname');
+        const messageInput = document.getElementById('message');
+        const submitBtn = document.getElementById('submit-btn');
+        const messagesList = document.getElementById('messages-list');
+        const sortSelect = document.getElementById('sort-select');
+        const totalMessagesEl = document.getElementById('total-messages');
+        const todayMessagesEl = document.getElementById('today-messages');
+        const totalPagesDisplay = document.getElementById('total-pages-display');
+        const currentPageEl = document.getElementById('current-page');
+        
+        // 分页元素
+        const firstPageBtn = document.getElementById('first-page');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const lastPageBtn = document.getElementById('last-page');
+        
+        // Supabase客户端实例
+        let supabaseClient;
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('页面加载完成，开始初始化...');
+            
+            try {
+                // 初始化Supabase客户端
+                const { createClient } = window.supabase;
+                supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.key);
+                
+                console.log('Supabase客户端初始化完成');
+                
+                // 测试连接
+                const { data, error } = await supabaseClient
+                    .from('messages')
+                    .select('id')
+                    .limit(1);
+                    
+                if (error) {
+                    console.error('Supabase连接错误:', error);
+                    showNotification('数据库连接失败，请稍后重试', 'error');
+                } else {
+                    console.log('数据库连接测试成功');
+                }
+                
+                // 加载统计数据
+                await loadStats();
+                
+                // 加载留言
+                await loadMessages();
+                
+                // 添加事件监听器
+                submitBtn.addEventListener('click', submitMessage);
+                sortSelect.addEventListener('change', loadMessages);
+                
+                // 绑定分页按钮事件
+                bindPaginationEvents();
+                
+                console.log('初始化完成');
+                
+            } catch (error) {
+                console.error('初始化过程中发生错误:', error);
+                showNotification('初始化失败: ' + error.message, 'error');
+            }
+        });
+
+        // 绑定分页按钮事件
+        function bindPaginationEvents() {
+            firstPageBtn.addEventListener('click', () => goToPage(1));
+            prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
+            nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+            lastPageBtn.addEventListener('click', () => goToPage(totalPages));
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            
+            sessionStorage.setItem('scrollToMessages', 'true');
+            loadMessages();
+        }
+        
+        // 更新分页控件状态
+        function updatePaginationControls() {
+            currentPageEl.textContent = currentPage;
+            totalPagesDisplay.textContent = totalPages;
+            
+            firstPageBtn.disabled = currentPage === 1;
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages;
+            lastPageBtn.disabled = currentPage === totalPages;
+        }
+        
+        // 加载留言
+        async function loadMessages() {
+            console.log('开始加载留言，页码:', currentPage);
+            
+            messagesList.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>正在加载第 ${currentPage} 页留言...</p>
+                </div>
+            `;
+            
+            try {
+                const offset = (currentPage - 1) * messagesPerPage;
+                
+                console.log('分页参数 - offset:', offset, 'limit:', messagesPerPage);
+                
+                // 构建基础查询
+                let query = supabaseClient
+                    .from('messages')
+                    .select('*', { count: 'exact' });
+                
+                // 应用排序
+                if (sortSelect.value === 'newest') {
+                    query = query.order('created_at', { ascending: false });
+                } else if (sortSelect.value === 'oldest') {
+                    query = query.order('created_at', { ascending: true });
+                } else if (sortSelect.value === 'most-liked') {
+                    query = query.order('likes', { ascending: false });
+                }
+                
+                console.log('执行查询，排序方式:', sortSelect.value);
+                
+                // 使用range进行分页
+                const { data: messages, error, count } = await query
+                    .range(offset, offset + messagesPerPage - 1);
+                
+                if (error) {
+                    console.error('查询错误:', error);
+                    throw error;
+                }
+                
+                console.log('查询成功，获取到', messages?.length || 0, '条留言，总计:', count);
+                
+                displayMessages(messages || []);
+                
+                if (count) {
+                    totalPages = Math.ceil(count / messagesPerPage);
+                    console.log('总页数:', totalPages);
+                }
+                
+                updatePaginationControls();
+
+                // 滚动到留言区域
+                if (sessionStorage.getItem('scrollToMessages') === 'true') {
+                    setTimeout(() => {
+                        const messagesContainer = document.querySelector('.messages-container');
+                        if (messagesContainer) {
+                            messagesContainer.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                        sessionStorage.removeItem('scrollToMessages');
+                    }, 100);
+                }
+                
+            } catch (error) {
+                console.error('加载留言错误:', error);
+                messagesList.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>加载留言失败</h3>
+                        <p>错误: ${error.message}</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">建议：请检查网络连接或刷新页面重试</p>
+                        <button onclick="location.reload()" style="
+                            margin-top: 15px;
+                            padding: 10px 20px;
+                            background: #3498db;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: 600;
+                        ">
+                            <i class="fas fa-redo"></i> 刷新页面
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示留言
+        function displayMessages(messages) {
+            console.log('开始显示留言，数量:', messages.length);
+            
+            messagesList.innerHTML = '';
+            
+            if (!messages || messages.length === 0) {
+                messagesList.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p>暂无留言，成为第一个留言者吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            messages.forEach((msg) => {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message-card';
+                const isLiked = likedMessages[msg.id] || false;
+                
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-author">
+                            <i class="fas fa-user"></i> ${msg.nickname || '匿名用户'}
+                        </div>
+                        <div class="message-time">
+                            <i class="fas fa-clock"></i> ${formatDate(msg.created_at)}
+                        </div>
+                    </div>
+                    <div class="message-content">${msg.content}</div>
+                    
+                    <div class="action-container">
+                        <div class="like-container">
+                            <button class="like-btn ${isLiked ? 'liked' : ''}" data-id="${msg.id}">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <span class="like-count">${msg.likes || 0}</span>
+                        </div>
+                        
+                        <div class="comment-container">
+                            <button class="comment-btn" data-id="${msg.id}">
+                                <i class="fas fa-comment"></i>
+                            </button>
+                            <span class="comment-count">${msg.comments || 0}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="comments-section" id="comments-${msg.id}">
+                        <div class="comment-form">
+                            <input type="text" class="comment-nickname" placeholder="昵称（可选）">
+                            <textarea class="comment-content" placeholder="写下你的评论..."></textarea>
+                            <button class="submit-comment" data-id="${msg.id}">发表评论</button>
+                        </div>
+                        <div class="comments-list" id="comments-list-${msg.id}"></div>
+                    </div>
+                `;
+                messagesList.appendChild(messageElement);
+            });
+            
+            // 绑定事件
+            document.querySelectorAll('.like-btn').forEach(button => {
+                button.addEventListener('click', likeMessage);
+            });
+            
+            document.querySelectorAll('.comment-btn').forEach(button => {
+                button.addEventListener('click', toggleComments);
+            });
+            
+            document.querySelectorAll('.submit-comment').forEach(button => {
+                button.addEventListener('click', submitComment);
+            });
+            
+            console.log('留言显示完成');
+        }
+        
+        // 点赞功能
+        async function likeMessage(event) {
+            const button = event.currentTarget;
+            const messageId = button.dataset.id;
+            
+            console.log('点赞消息ID:', messageId);
+            
+            if (likedMessages[messageId]) {
+                showNotification('您已经点过赞了！', 'info');
+                return;
+            }
+            
+            if (pendingLikes.has(messageId)) {
+                showNotification('正在处理点赞，请稍候...', 'info');
+                return;
+            }
+            
+            pendingLikes.add(messageId);
+            
+            try {
+                button.classList.add('liked');
+                const likeCountEl = button.parentNode.querySelector('.like-count');
+                const currentLikes = parseInt(likeCountEl.textContent);
+                const newLikes = currentLikes + 1;
+                likeCountEl.textContent = newLikes;
+                
+                button.classList.add('animating');
+                
+                console.log('更新点赞数，消息ID:', messageId);
+                
+                const { data: message, error: getError } = await supabaseClient
+                    .from('messages')
+                    .select('likes')
+                    .eq('id', messageId)
+                    .single();
+                
+                if (getError) throw getError;
+                
+                const dbLikes = (message.likes || 0) + 1;
+                
+                console.log('当前点赞数:', message.likes, '更新为:', dbLikes);
+                
+                const { error: updateError } = await supabaseClient
+                    .from('messages')
+                    .update({ likes: dbLikes })
+                    .eq('id', messageId);
+                
+                if (updateError) throw updateError;
+                
+                likedMessages[messageId] = true;
+                localStorage.setItem('likedMessages', JSON.stringify(likedMessages));
+                
+                showNotification('点赞成功！', 'success');
+                
+                setTimeout(() => {
+                    button.classList.remove('animating');
+                }, 500);
+            } catch (error) {
+                console.error('点赞失败:', error);
+                button.classList.remove('liked');
+                const likeCountEl = button.parentNode.querySelector('.like-count');
+                const currentLikes = parseInt(likeCountEl.textContent);
+                likeCountEl.textContent = Math.max(0, currentLikes - 1);
+                
+                showNotification(`点赞失败: ${error.message}`, 'error');
+            } finally {
+                pendingLikes.delete(messageId);
+            }
+        }
+        
+        // 提交留言
+        async function submitMessage() {
+            const nickname = nicknameInput.value.trim();
+            const content = messageInput.value.trim();
+            
+            if (!content) {
+                showNotification('留言内容不能为空！', 'error');
+                messageInput.focus();
+                return;
+            }
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
+                
+                document.getElementById('temp-nickname').textContent = nickname || '匿名用户';
+                document.getElementById('temp-content').textContent = content;
+                document.getElementById('submit-status').style.display = 'block';
+                
+                document.getElementById('submit-status').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                
+                console.log('提交留言:', { nickname: nickname || null, content });
+                
+                const { error } = await supabaseClient
+                    .from('messages')
+                    .insert([
+                        { 
+                            nickname: nickname || null, 
+                            content: content,
+                            likes: 0,
+                            comments: 0
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                messageInput.value = '';
+                nicknameInput.value = '';
+                
+                document.getElementById('submit-status').style.display = 'none';
+                
+                await loadStats();
+                
+                currentPage = 1;
+                loadMessages();
+                
+                showNotification('留言发布成功！', 'success');
+            } catch (error) {
+                console.error('提交留言失败:', error);
+                document.querySelector('.message-status').innerHTML = `
+                    <i class="fas fa-exclamation-circle"></i> 提交失败: ${error.message}
+                `;
+                document.querySelector('.message-status').style.color = '#e74c3c';
+                
+                showNotification(`发布失败: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布留言';
+            }
+        }
+        
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                console.log('加载统计数据...');
+                
+                // 总留言数
+                const { count: totalCount } = await supabaseClient
+                    .from('messages')
+                    .select('*', { count: 'exact', head: true });
+                
+                console.log('总留言数:', totalCount);
+                totalMessagesEl.textContent = totalCount || 0;
+                
+                // 今日留言数
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                
+                const { count: todayCount } = await supabaseClient
+                    .from('messages')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', todayStart.toISOString())
+                    .lt('created_at', todayEnd.toISOString());
+                
+                console.log('今日留言数:', todayCount);
+                todayMessagesEl.textContent = todayCount || 0;
+                
+                // 计算总页数
+                totalPages = Math.ceil(totalCount / messagesPerPage);
+                totalPagesDisplay.textContent = totalPages;
+                
+                updatePaginationControls();
+                
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace(/\//g, '-');
+        }
+        
+        // 显示通知
+        function showNotification(message, type) {
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                type === 'error' ? 'exclamation-circle' : 
+                                'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        // 评论功能
+        async function toggleComments(event) {
+            const button = event.currentTarget;
+            const messageId = button.dataset.id;
+            const commentSection = document.getElementById(`comments-${messageId}`);
+            
+            commentSection.classList.toggle('expanded');
+            button.classList.toggle('active', commentSection.classList.contains('expanded'));
+            
+            if (commentSection.classList.contains('expanded')) {
+                await loadComments(messageId);
+            }
+        }
+        
+        // 加载评论
+        async function loadComments(messageId) {
+            const commentsList = document.getElementById(`comments-list-${messageId}`);
+            commentsList.innerHTML = '<div class="loading" style="padding: 10px; font-size: 0.9rem;"><i class="fas fa-spinner"></i> 加载评论中...</div>';
+            
+            try {
+                console.log('加载评论，消息ID:', messageId);
+                
+                const { data: comments, error } = await supabaseClient
+                    .from('comments')
+                    .select('*')
+                    .eq('message_id', messageId)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                console.log('获取到评论数:', comments?.length || 0);
+                renderComments(messageId, comments);
+            } catch (error) {
+                console.error('加载评论失败:', error);
+                commentsList.innerHTML = `<div class="error" style="padding: 10px;">加载评论失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 渲染评论
+        function renderComments(messageId, comments) {
+            const commentsList = document.getElementById(`comments-list-${messageId}`);
+            
+            if (!comments || comments.length === 0) {
+                commentsList.innerHTML = '<div class="empty-message" style="padding: 20px; font-size: 0.9rem;">暂无评论</div>';
+                return;
+            }
+            
+            let commentsHTML = '';
+            comments.forEach(comment => {
+                commentsHTML += `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="comment-author">${comment.nickname || '匿名用户'}</span>
+                            <span class="comment-time">${formatDate(comment.created_at)}</span>
+                        </div>
+                        <div class="comment-content">${comment.content}</div>
+                    </div>
+                `;
+            });
+            
+            commentsList.innerHTML = commentsHTML;
+        }
+        
+        // 提交评论
+        async function submitComment(event) {
+            const button = event.currentTarget;
+            const messageId = button.dataset.id;
+            const commentForm = button.parentNode;
+            const nicknameInput = commentForm.querySelector('.comment-nickname');
+            const contentInput = commentForm.querySelector('.comment-content');
+            
+            const nickname = nicknameInput.value.trim();
+            const content = contentInput.value.trim();
+            
+            if (!content) {
+                showNotification('评论内容不能为空！', 'error');
+                contentInput.focus();
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = '提交中...';
+            
+            const tempComment = {
+                id: 'temp-' + Date.now(),
+                nickname: nickname || '匿名用户',
+                content: content,
+                created_at: new Date().toISOString(),
+                isTemp: true
+            };
+            
+            addTempComment(messageId, tempComment);
+            
+            try {
+                console.log('提交评论:', { messageId, nickname: nickname || null, content });
+                
+                const { error } = await supabaseClient
+                    .from('comments')
+                    .insert([
+                        {
+                            message_id: messageId,
+                            nickname: nickname || null,
+                            content: content
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                const { data: message, error: countError } = await supabaseClient
+                    .from('messages')
+                    .select('comments')
+                    .eq('id', messageId)
+                    .single();
+                
+                if (countError) throw countError;
+                
+                const newCommentCount = (message.comments || 0) + 1;
+                
+                console.log('更新评论数，消息ID:', messageId, '新评论数:', newCommentCount);
+                
+                const { error: updateError } = await supabaseClient
+                    .from('messages')
+                    .update({ comments: newCommentCount })
+                    .eq('id', messageId);
+                
+                if (updateError) throw updateError;
+                
+                const commentCountEl = document.querySelector(`.comment-btn[data-id="${messageId}"] + .comment-count`);
+                if (commentCountEl) {
+                    commentCountEl.textContent = newCommentCount;
+                }
+                
+                await loadComments(messageId);
+                
+                showNotification('评论提交成功！', 'success');
+                
+                contentInput.value = '';
+                nicknameInput.value = '';
+            } catch (error) {
+                console.error('提交评论失败:', error);
+                removeTempComment(messageId, tempComment.id);
+                showNotification(`评论提交失败: ${error.message}`, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = '发表评论';
+            }
+        }
+
+        // 添加临时评论到列表顶部
+        function addTempComment(messageId, comment) {
+            const commentsList = document.getElementById(`comments-list-${messageId}`);
+            const tempCommentElement = document.createElement('div');
+            tempCommentElement.className = 'comment-item temp-comment';
+            tempCommentElement.id = `comment-${comment.id}`;
+            tempCommentElement.innerHTML = `
+                <div class="comment-header">
+                    <span class="comment-author">${comment.nickname}</span>
+                    <span class="comment-time">提交中...</span>
+                </div>
+                <div class="comment-content">${comment.content}</div>
+                <div class="comment-status"><i class="fas fa-spinner fa-spin"></i> 正在提交</div>
+            `;
+            if (commentsList.firstChild) {
+                commentsList.insertBefore(tempCommentElement, commentsList.firstChild);
+            } else {
+                commentsList.appendChild(tempCommentElement);
+            }
+        }
+
+        // 移除临时评论
+        function removeTempComment(messageId, commentId) {
+            const tempCommentElement = document.getElementById(`comment-${commentId}`);
+            if (tempCommentElement) {
+                tempCommentElement.remove();
+            }
+        }
+    </script>
+</body>
+</html>
